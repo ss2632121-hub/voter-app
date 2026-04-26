@@ -278,6 +278,12 @@
     </style>
 </head>
 <body>
+<div id="installBanner" style="display:none; background: #4f46e5; color: white; padding: 15px; text-align: center; border-radius: 12px; margin-bottom: 20px; box-shadow: var(--shadow);">
+    <p style="margin: 0 0 10px 0; font-size: 14px;">Behtar experience ke liye app install karein!</p>
+    <button id="installBtn" style="background: white; color: #4f46e5; border: none; padding: 8px 20px; border-radius: 50px; font-weight: bold; cursor: pointer;">
+        INSTALL NOW 📱
+    </button>
+</div>
 
 <div class="container">
     <h2>Voter Finder</h2>
@@ -296,6 +302,39 @@
 </div>
 
 <script>
+let deferredPrompt;
+const installBanner = document.getElementById('installBanner');
+const installBtn = document.getElementById('installBtn');
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // Browser ko default prompt dikhane se rokein
+    e.preventDefault();
+    // Event ko save karlein taaki baad mein trigger kar sakein
+    deferredPrompt = e;
+    // User ko apna custom install banner dikhayein
+    installBanner.style.display = 'block';
+});
+
+installBtn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+        // Install prompt dikhayein
+        deferredPrompt.prompt();
+        // User ka decision check karein
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            console.log('User ne app install kar liya');
+        }
+        deferredPrompt = null;
+        installBanner.style.display = 'none';
+    }
+});
+
+// Agar app pehle se install hai, toh banner nahi dikhega
+window.addEventListener('appinstalled', () => {
+    installBanner.style.display = 'none';
+    console.log('Voter App installed successfully!');
+});
+
     // --- DATABASE (Replace with your 1300+ records) ---
     const voters = [
   { "epic": "SOR1246180", "name": "Deepali Mithun Bhise", "relation": "Mithun Bhise", "type": "Husband", "age": 35, "house": "1", "ward": "1" },
