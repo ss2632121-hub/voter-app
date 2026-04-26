@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4f46e5">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voter Finder Pro</title>
+    <style>
+        /* --- CSS VARIABLES (Colors & Themes) --- */
+        :root {
+            --primary: #4f46e5; /* Indigo Blue */
+            --primary-dark: #3730a3;
+            --secondary: #a5b4fc;
+            --bg: #f8fafc; /* Light Grayish Blue */
+            --card-bg: #ffffff;
+            --text-main: #1e293b; /* Dark Slate */
+            --text-muted: #64748b; /* Gray Slate */
+            --shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        /* --- BASIC SETUP --- */
+        body {
+            font-family: 'Poppins', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 480px; /* Perfect for mobile and small tablets */
+            margin: 20px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- HEADER STYLING --- */
+        h2 {
+            text-align: center;
+            color: var(--primary-dark);
+            margin-bottom: 25px;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
+
+        h2::after {
+            content: '';
+            display: block;
+            width: 60px;
+            height: 4px;
+            background-color: var(--primary);
+            margin: 8px auto 0;
+            border-radius: 2px;
+        }
+
+        /* --- SEARCH BOX STYLING --- */
+        .search-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 16px 20px 16px 50px; /* Space for icon */
+            border-radius: 50px; /* Pill shape */
+            border: 2px solid #e2e8f0;
+            font-size: 16px;
+            background-color: white;
+            transition: var(--transition);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+            box-sizing: border-box;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        /* Search Icon */
+        .search-container::before {
+            content: '🔍';
+            position: absolute;
+            left: 18px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 20px;
+            opacity: 0.5;
+        }
+
+        /* --- VOTER CARD STYLING --- */
+        #list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px; /* Space between cards */
+        }
+
+        .voter-card {
+            background-color: var(--card-bg);
+            padding: 18px;
+            border-radius: 16px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: var(--transition);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+            border: 1px solid transparent;
+            position: relative;
+            overflow: hidden;
+        }
+
+        /* Hover & Tap Effects */
+        .voter-card:hover {
+            transform: translateY(-3px);
+            box-shadow: var(--shadow);
+            border-color: #e2e8f0;
+        }
+
+        .voter-card:active {
+            transform: translateY(-1px) scale(0.98);
+        }
+
+        /* Left Color Accent */
+        .voter-card::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            width: 5px;
+            background-color: var(--primary);
+            border-radius: 16px 0 0 16px;
+            transition: var(--transition);
+            opacity: 0.8;
+        }
+
+        .voter-card:hover::before {
+            width: 8px;
+            opacity: 1;
+        }
+
+        .voter-name {
+            font-weight: 600;
+            font-size: 17px;
+            color: var(--text-main);
+            margin-bottom: 4px;
+        }
+
+        .voter-epic {
+            color: var(--text-muted);
+            font-size: 14px;
+            font-family: 'Courier New', Courier, monospace; /* Monospace for numbers */
+            letter-spacing: 0.5px;
+        }
+
+        .arrow-icon {
+            font-size: 20px;
+            color: var(--primary);
+            opacity: 0.6;
+            transition: var(--transition);
+        }
+
+        .voter-card:hover .arrow-icon {
+            opacity: 1;
+            transform: translateX(3px);
+        }
+
+        /* --- MODAL (POPUP) STYLING --- */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.6); /* Dark Slate overlay */
+            backdrop-filter: blur(8px); /* Modern blur effect */
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        .modal.show {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 1;
+        }
+
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            width: 90%;
+            max-width: 380px;
+            border-radius: 24px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            position: relative;
+            transform: translateY(20px) scale(0.95);
+            transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .modal.show .modal-content {
+            transform: translateY(0) scale(1);
+        }
+
+        .close-btn {
+            position: absolute;
+            right: 20px;
+            top: 15px;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: var(--transition);
+            line-height: 1;
+        }
+
+        .close-btn:hover {
+            color: #ef4444; /* Red on hover */
+        }
+
+        .modal-header {
+            margin-top: 0;
+            margin-bottom: 25px;
+            color: var(--text-main);
+            font-size: 22px;
+            font-weight: 700;
+            border-bottom: 2px solid #f1f5f9;
+            padding-bottom: 15px;
+        }
+
+        .detail-row {
+            margin-bottom: 18px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .detail-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .label {
+            font-size: 12px;
+            color: var(--primary);
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .val {
+            font-size: 17px;
+            color: var(--text-main);
+            font-weight: 500;
+            background-color: #f8fafc;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+        }
+
+        /* --- LOADING SPINNER --- */
+        .spinner {
+            display: none;
+            text-align: center;
+            color: var(--primary);
+            font-size: 14px;
+            margin-top: 20px;
+        }
+
+        /* For Google Font 'Poppins' */
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap');
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Voter Finder</h2>
+    <div class="search-container">
+        <input type="text" id="srch" class="search-box" placeholder="Search Name or EPIC Number..." onkeyup="find()">
+    </div>
+    <div id="spinner" class="spinner">Searching...</div>
+    <div id="list"></div>
+</div>
+
+<div id="pop" class="modal" onclick="closeModal(event)">
+    <div class="modal-content" onclick="event.stopPropagation()"> <span class="close-btn" onclick="document.getElementById('pop').classList.remove('show'); setTimeout(()=>document.getElementById('pop').style.display='none', 400);">&times;</span>
+        <div class="modal-header" id="mName"></div>
+        <div id="mBody"></div>
+    </div>
+</div>
+
+<script>
+    // --- DATABASE (Replace with your 1300+ records) ---
+    const voters = [
+  { "epic": "SOR1246180", "name": "Deepali Mithun Bhise", "relation": "Mithun Bhise", "type": "Husband", "age": 35, "house": "1", "ward": "1" },
+  { "epic": "SOR5586621", "name": "Anjali Nagsen Bansode", "relation": "Nagsen Bansode", "type": "Father", "age": 24, "house": "1", "ward": "1" },
+  { "epic": "SOR6727226", "name": "RAHUL RAMLING BHISE", "relation": "RAMLING BHISE", "type": "Father", "age": 23, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189037", "name": "Ghanshyam Shrirang Dahiphale", "relation": "Shrirang Dahiphale", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189038", "name": "Vimal Ghanshyam Dahiphale", "relation": "Ghanshyam Dahiphale", "type": "Husband", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "SOR3433505", "name": "Priyanka Ghansham Dahiphale", "relation": "Ghansham Dahiphale", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR5585862", "name": "Rushi Ghansham Dahiphale", "relation": "Ghansham Dahiphale", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR6072318", "name": "Radha Dahiphale", "relation": "Ghansham Dahiphale", "type": "Father", "age": 24, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189441", "name": "Siddharth Laxman Gade", "relation": "Laxman Gade", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189442", "name": "Usha Siddharth Gade", "relation": "Siddharth Gade", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR4146031", "name": "Rohini Siddharth Gade", "relation": "Siddharth Gade", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR4926614", "name": "Anuja Siddharth Gade", "relation": "Siddharth Gade", "type": "Father", "age": 27, "house": "1", "ward": "1" },
+  { "epic": "SOR6073043", "name": "Kiran Siddharth Gade", "relation": "Siddharth Gade", "type": "Father", "age": 23, "house": "1", "ward": "1" },
+  { "epic": "SOR0592980", "name": "Mahadeo Bhanudas Ghadge", "relation": "Bhanudas Ghadge", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "SOR0593004", "name": "Vimal Mahadeo Ghadge", "relation": "Mahadeo Ghadge", "type": "Husband", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "SOR5586639", "name": "Ganesh Mahadeo Ghadge", "relation": "Mahadeo Ghadge", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR7185036", "name": "KARTIK MAHADEO GHADGE", "relation": "MAHADEO BHANUDAS GHADGE", "type": "Father", "age": 20, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189503", "name": "Nivritti Namdeo Ghodke", "relation": "Namdeo Ghodke", "type": "Father", "age": 57, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189504", "name": "Kamal Nivritti Ghodke", "relation": "Nivritti Ghodke", "type": "Husband", "age": 53, "house": "1", "ward": "1" },
+  { "epic": "SOR1246164", "name": "Santosh Nivruti Ghodke", "relation": "Nivruti Ghodke", "type": "Father", "age": 36, "house": "1", "ward": "1" },
+  
+    { "epic": "SOR1246172", "name": "Smita Santosh Ghodke", "relation": "Santosh Ghodke", "type": "Husband", "age": 32, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189445", "name": "Mahadev Sitaram Gite", "relation": "Sitaram Gite", "type": "Father", "age": 62, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189446", "name": "Sakhubai Mahadev Gite", "relation": "Mahadev Gite", "type": "Husband", "age": 57, "house": "1", "ward": "1" },
+  { "epic": "SOR1246149", "name": "Ram Mahadev Gite", "relation": "Mahadev Gite", "type": "Father", "age": 34, "house": "1", "ward": "1" },
+  { "epic": "SOR4146114", "name": "Seema Ram Gite", "relation": "Ram Gite", "type": "Husband", "age": 29, "house": "1", "ward": "1" },
+  { "epic": "SOR1246131", "name": "Laxman Mahadev Gite", "relation": "Mahadev Gite", "type": "Father", "age": 31, "house": "1", "ward": "1" },
+  { "epic": "SOR5585912", "name": "Vandana Laxman Gite", "relation": "Laxman Gite", "type": "Husband", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR6072383", "name": "Shubham Mahadev Gite", "relation": "Mahadev Gite", "type": "Father", "age": 26, "house": "1", "ward": "1" },
+  { "epic": "SOR1248038", "name": "Sudhir Sadashiv Gitte", "relation": "Sadashiv Gitte", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "SOR1248020", "name": "Suvarna Sudhir Gitte", "relation": "Sudhir Gitte", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR7185044", "name": "SIDDHESH SUDHIR GITTE", "relation": "SUDHIR SADASHIV GITTE", "type": "Father", "age": 19, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189449", "name": "Vibhishan Dattu Jagtap", "relation": "Dattu Jagtap", "type": "Father", "age": 52, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189450", "name": "Mangal Vibhishan Jagtap", "relation": "Vibhishan Jagtap", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR4146148", "name": "Rohini Vibhishan Jagtap", "relation": "Vibhishan Jagtap", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR5585730", "name": "Dipti Vibhishan Jagtap", "relation": "Vibhishan Jagtap", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR1246115", "name": "Vilas Namdeo Kadam", "relation": "Namdeo Kadam", "type": "Father", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "SOR1246123", "name": "Vanita Vilas Kadam", "relation": "Vilas Kadam", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR7185051", "name": "TEJAS VILAS KADAM", "relation": "VILAS NAMDEO KADAM", "type": "Father", "age": 19, "house": "1", "ward": "1" },
+  { "epic": "SOR6072342", "name": "Mangesh Pandurang Kakade", "relation": "Pandurang Kakade", "type": "Father", "age": 32, "house": "1", "ward": "1" },
+  { "epic": "SOR6072334", "name": "Trupti Mangesh Kakade", "relation": "Mangesh Kakade", "type": "Husband", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189457", "name": "Arjun Nivrutti Karande", "relation": "Nivrutti Karande", "type": "Father", "age": 52, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189458", "name": "Surekha Arjun Karande", "relation": "Arjun Karande", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR4146205", "name": "Rohini Arjun Karande", "relation": "Arjun Karande", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR4925830", "name": "Sagar Arjun Karande", "relation": "Arjun Karande", "type": "Father", "age": 27, "house": "1", "ward": "1" },
+  { "epic": "SOR6072714", "name": "Pradip Arjun Karande", "relation": "Arjun Karande", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189461", "name": "Bhagwan Namdeo Khade", "relation": "Namdeo Khade", "type": "Father", "age": 62, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189462", "name": "Anusaya Bhagwan Khade", "relation": "Bhagwan Khade", "type": "Husband", "age": 52, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189463", "name": "Dhananjay Bhagwan Khade", "relation": "Bhagwan Khade", "type": "Father", "age": 36, "house": "1", "ward": "1" },
+  { "epic": "SOR1246099", "name": "Deepali Dhananjay Khade", "relation": "Dhananjay Khade", "type": "Husband", "age": 30, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189464", "name": "Abhiman Bhagwan Khade", "relation": "Bhagwan Khade", "type": "Father", "age": 34, "house": "1", "ward": "1" },
+  
+    { "epic": "SOR5586647", "name": "Mohini Abhiman Khade", "relation": "Abhiman Khade", "type": "Husband", "age": 30, "house": "1", "ward": "1" },
+  { "epic": "SOR6073035", "name": "Suraj Bhagwan Khade", "relation": "Bhagwan Khade", "type": "Father", "age": 30, "house": "1", "ward": "1" },
+  { "epic": "SOR6073118", "name": "Ashwini Suraj Khade", "relation": "Suraj Khade", "type": "Husband", "age": 24, "house": "1", "ward": "1" },
+  { "epic": "SOR0592758", "name": "Bharat Tukaram Lagad", "relation": "Tukaram Lagad", "type": "Father", "age": 57, "house": "1", "ward": "1" },
+  { "epic": "SOR0592766", "name": "Suvarna Bharat Lagad", "relation": "Bharat Lagad", "type": "Husband", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "SOR4146239", "name": "Sagar Bharat Lagad", "relation": "Bharat Lagad", "type": "Father", "age": 29, "house": "1", "ward": "1" },
+  { "epic": "SOR5585805", "name": "Prashant Bharat Lagad", "relation": "Bharat Lagad", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR6072391", "name": "Dnyaneshwar Madhukar Misal", "relation": "Madhukar Misal", "type": "Father", "age": 41, "house": "1", "ward": "1" },
+  { "epic": "SOR6072409", "name": "Kalpana Dnyaneshwar Misal", "relation": "Dnyaneshwar Misal", "type": "Husband", "age": 32, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189045", "name": "Suresh Namdeo Mudekar", "relation": "Namdeo Mudekar", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189046", "name": "Pushpa Suresh Mudekar", "relation": "Suresh Mudekar", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR3433547", "name": "Snehal Suresh Mudekar", "relation": "Suresh Mudekar", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR5585979", "name": "Pratiksha Suresh Mudekar", "relation": "Suresh Mudekar", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR7185069", "name": "ROHIT SURESH MUDEKAR", "relation": "SURESH NAMDEO MUDEKAR", "type": "Father", "age": 21, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189049", "name": "Bhaskar Laxmanrao Mundhe", "relation": "Laxmanrao Mundhe", "type": "Father", "age": 53, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189050", "name": "Mandakini Bhaskar Mundhe", "relation": "Bhaskar Mundhe", "type": "Husband", "age": 49, "house": "1", "ward": "1" },
+  { "epic": "SOR1246107", "name": "Sudam Bhaskar Mundhe", "relation": "Bhaskar Mundhe", "type": "Father", "age": 31, "house": "1", "ward": "1" },
+  { "epic": "SOR5586654", "name": "Jyoti Sudam Mundhe", "relation": "Sudam Mundhe", "type": "Husband", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR3433562", "name": "Krishna Bhaskar Mundhe", "relation": "Bhaskar Mundhe", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR4146312", "name": "Radha Bhaskar Mundhe", "relation": "Bhaskar Mundhe", "type": "Father", "age": 27, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189053", "name": "Ramesh Laxmanrao Mundhe", "relation": "Laxmanrao Mundhe", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189054", "name": "Prayagbai Ramesh Mundhe", "relation": "Ramesh Mundhe", "type": "Husband", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "SOR1246081", "name": "Siddheshwar Ramesh Mundhe", "relation": "Ramesh Mundhe", "type": "Father", "age": 31, "house": "1", "ward": "1" },
+  { "epic": "SOR6072326", "name": "Rani Siddheshwar Mundhe", "relation": "Siddheshwar Mundhe", "type": "Husband", "age": 26, "house": "1", "ward": "1" },
+  { "epic": "SOR3433588", "name": "Dnyaneshwar Ramesh Mundhe", "relation": "Ramesh Mundhe", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR6073126", "name": "Mohini Ramesh Mundhe", "relation": "Ramesh Mundhe", "type": "Father", "age": 23, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189057", "name": "Arjun Nivrutti Phad", "relation": "Nivrutti Phad", "type": "Father", "age": 57, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189058", "name": "Latabai Arjun Phad", "relation": "Arjun Phad", "type": "Husband", "age": 53, "house": "1", "ward": "1" },
+  { "epic": "SOR0176842", "name": "Tukaram Arjun Phad", "relation": "Arjun Phad", "type": "Father", "age": 36, "house": "1", "ward": "1" },
+  { "epic": "SOR1246073", "name": "Shubhangi Tukaram Phad", "relation": "Tukaram Phad", "type": "Husband", "age": 32, "house": "1", "ward": "1" },
+  
+    { "epic": "MT/39/231/0189059", "name": "Navnath Arjun Phad", "relation": "Arjun Phad", "type": "Father", "age": 34, "house": "1", "ward": "1" },
+  { "epic": "SOR5585748", "name": "Meera Navnath Phad", "relation": "Navnath Phad", "type": "Husband", "age": 27, "house": "1", "ward": "1" },
+  { "epic": "SOR6072367", "name": "Shivkanya Arjun Phad", "relation": "Arjun Phad", "type": "Father", "age": 23, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189472", "name": "Devidas Vitthalrao Shinde", "relation": "Vitthalrao Shinde", "type": "Father", "age": 51, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189473", "name": "Mandakini Devidas Shinde", "relation": "Devidas Shinde", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR1246057", "name": "Vikas Devidas Shinde", "relation": "Devidas Shinde", "type": "Father", "age": 32, "house": "1", "ward": "1" },
+  { "epic": "SOR5586662", "name": "Snehal Vikas Shinde", "relation": "Vikas Shinde", "type": "Husband", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR4146346", "name": "Priyanka Devidas Shinde", "relation": "Devidas Shinde", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR6072359", "name": "Shivani Devidas Shinde", "relation": "Devidas Shinde", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189063", "name": "Pandurang Rambhau Tidke", "relation": "Rambhau Tidke", "type": "Father", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189064", "name": "Alka Pandurang Tidke", "relation": "Pandurang Tidke", "type": "Husband", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR3433604", "name": "Sagar Pandurang Tidke", "relation": "Pandurang Tidke", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR5585755", "name": "Rohini Pandurang Tidke", "relation": "Pandurang Tidke", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189475", "name": "Jagannath Gopinath Ubale", "relation": "Gopinath Ubale", "type": "Father", "age": 63, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189476", "name": "Lankabai Jagannath Ubale", "relation": "Jagannath Ubale", "type": "Husband", "age": 57, "house": "1", "ward": "1" },
+  { "epic": "SOR1246040", "name": "Amol Jagannath Ubale", "relation": "Jagannath Ubale", "type": "Father", "age": 36, "house": "1", "ward": "1" },
+  { "epic": "SOR6072417", "name": "Meera Amol Ubale", "relation": "Amol Ubale", "type": "Husband", "age": 31, "house": "1", "ward": "1" },
+  { "epic": "SOR3433612", "name": "Siddharth Jagannath Ubale", "relation": "Jagannath Ubale", "type": "Father", "age": 32, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189481", "name": "Manohar Rambhau Wayal", "relation": "Rambhau Wayal", "type": "Father", "age": 57, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189482", "name": "Kantabai Manohar Wayal", "relation": "Manohar Wayal", "type": "Husband", "age": 47, "house": "1", "ward": "1" },
+  { "epic": "SOR1246032", "name": "Rahul Manohar Wayal", "relation": "Manohar Wayal", "type": "Father", "age": 31, "house": "1", "ward": "1" },
+  { "epic": "SOR6073159", "name": "Priyanka Rahul Wayal", "relation": "Rahul Wayal", "type": "Husband", "age": 26, "house": "1", "ward": "1" },
+  { "epic": "SOR4146387", "name": "Pradip Manohar Wayal", "relation": "Manohar Wayal", "type": "Father", "age": 28, "house": "1", "ward": "1" },
+  { "epic": "SOR7185077", "name": "SURAJ MANOHAR WAYAL", "relation": "MANOHAR RAMBHAU WAYAL", "type": "Father", "age": 20, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189069", "name": "Vitthalrao Namdeorao Zade", "relation": "Namdeorao Zade", "type": "Father", "age": 67, "house": "1", "ward": "1" },
+  { "epic": "MT/39/231/0189070", "name": "Vimal Vitthalrao Zade", "relation": "Vitthalrao Zade", "type": "Husband", "age": 62, "house": "1", "ward": "1" },
+  { "epic": "SOR1246016", "name": "Sanjay Vitthalrao Zade", "relation": "Vitthalrao Zade", "type": "Father", "age": 42, "house": "1", "ward": "1" },
+  { "epic": "SOR1246024", "name": "Savita Sanjay Zade", "relation": "Sanjay Zade", "type": "Husband", "age": 37, "house": "1", "ward": "1" },
+  { "epic": "SOR4146411", "name": "Pooja Sanjay Zade", "relation": "Sanjay Zade", "type": "Father", "age": 25, "house": "1", "ward": "1" },
+  { "epic": "SOR6072383", "name": "Rahul Sanjay Zade", "relation": "Sanjay Zade", "type": "Father", "age": 23, "house": "1", "ward": "1" },
+  
+    { "epic": "MT/39/231/0189073", "name": "Bhanudas Shripati Ade", "relation": "Shripati Ade", "type": "Father", "age": 57, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189074", "name": "Sumati Bhanudas Ade", "relation": "Bhanudas Ade", "type": "Husband", "age": 52, "house": "2", "ward": "1" },
+  { "epic": "SOR1245984", "name": "Sagar Bhanudas Ade", "relation": "Bhanudas Ade", "type": "Father", "age": 32, "house": "2", "ward": "1" },
+  { "epic": "SOR6072342", "name": "Aarti Sagar Ade", "relation": "Sagar Ade", "type": "Husband", "age": 26, "house": "2", "ward": "1" },
+  { "epic": "SOR3433620", "name": "Govind Bhanudas Ade", "relation": "Bhanudas Ade", "type": "Father", "age": 29, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189077", "name": "Dnyaneshwar Manikrao Agre", "relation": "Manikrao Agre", "type": "Father", "age": 51, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189078", "name": "Prayagbai Dnyaneshwar Agre", "relation": "Dnyaneshwar Agre", "type": "Husband", "age": 47, "house": "2", "ward": "1" },
+  { "epic": "SOR4146445", "name": "Pradip Dnyaneshwar Agre", "relation": "Dnyaneshwar Agre", "type": "Father", "age": 28, "house": "2", "ward": "1" },
+  { "epic": "SOR5585789", "name": "Aarti Dnyaneshwar Agre", "relation": "Dnyaneshwar Agre", "type": "Father", "age": 25, "house": "2", "ward": "1" },
+  { "epic": "SOR7185085", "name": "SURAJ DNYANESHWAR AGRE", "relation": "DNYANESHWAR MANIKRAO AGRE", "type": "Father", "age": 20, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189485", "name": "Babasaheb Bhanudas Bade", "relation": "Bhanudas Bade", "type": "Father", "age": 57, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189486", "name": "Sumati Babasaheb Bade", "relation": "Babasaheb Bade", "type": "Husband", "age": 52, "house": "2", "ward": "1" },
+  { "epic": "SOR1245950", "name": "Siddharth Babasaheb Bade", "relation": "Babasaheb Bade", "type": "Father", "age": 32, "house": "2", "ward": "1" },
+  { "epic": "SOR6073159", "name": "Seema Siddharth Bade", "relation": "Siddharth Bade", "type": "Husband", "age": 26, "house": "2", "ward": "1" },
+  { "epic": "SOR3433638", "name": "Ganesh Babasaheb Bade", "relation": "Babasaheb Bade", "type": "Father", "age": 29, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189081", "name": "Bharat Tukaram Bangar", "relation": "Tukaram Bangar", "type": "Father", "age": 51, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189082", "name": "Suvarna Bharat Bangar", "relation": "Bharat Bangar", "type": "Husband", "age": 47, "house": "2", "ward": "1" },
+  { "epic": "SOR4146478", "name": "Pranav Bharat Bangar", "relation": "Bharat Bangar", "type": "Father", "age": 28, "house": "2", "ward": "1" },
+  { "epic": "SOR5585813", "name": "Shivani Bharat Bangar", "relation": "Bharat Bangar", "type": "Father", "age": 25, "house": "2", "ward": "1" },
+  { "epic": "SOR7185093", "name": "SIDDHESH BHARAT BANGAR", "relation": "BHARAT TUKARAM BANGAR", "type": "Father", "age": 20, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189489", "name": "Sudam Bhanudas Bhagat", "relation": "Bhanudas Bhagat", "type": "Father", "age": 47, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189490", "name": "Usha Sudam Bhagat", "relation": "Sudam Bhagat", "type": "Husband", "age": 42, "house": "2", "ward": "1" },
+  { "epic": "SOR1245927", "name": "Vijay Sudam Bhagat", "relation": "Sudam Bhagat", "type": "Father", "age": 31, "house": "2", "ward": "1" },
+  { "epic": "SOR6072367", "name": "Komal Vijay Bhagat", "relation": "Vijay Bhagat", "type": "Husband", "age": 25, "house": "2", "ward": "1" },
+  { "epic": "SOR3433646", "name": "Ganesh Sudam Bhagat", "relation": "Sudam Bhagat", "type": "Father", "age": 28, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189085", "name": "Bhagwan Manikrao Bhise", "relation": "Manikrao Bhise", "type": "Father", "age": 57, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189086", "name": "Vimal Bhagwan Bhise", "relation": "Bhagwan Bhise", "type": "Husband", "age": 52, "house": "2", "ward": "1" },
+  { "epic": "SOR1245901", "name": "Siddharth Bhagwan Bhise", "relation": "Bhagwan Bhise", "type": "Father", "age": 32, "house": "2", "ward": "1" },
+  { "epic": "SOR6073183", "name": "Priyanka Siddharth Bhise", "relation": "Siddharth Bhise", "type": "Husband", "age": 26, "house": "2", "ward": "1" },
+  { "epic": "SOR3433653", "name": "Ram Bhagwan Bhise", "relation": "Bhagwan Bhise", "type": "Father", "age": 29, "house": "2", "ward": "1" },
+  
+    { "epic": "MT/39/231/0189089", "name": "Bharat Manikrao Borade", "relation": "Manikrao Borade", "type": "Father", "age": 51, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189090", "name": "Suvarna Bharat Borade", "relation": "Bharat Borade", "type": "Husband", "age": 47, "house": "2", "ward": "1" },
+  { "epic": "SOR4146510", "name": "Pranav Bharat Borade", "relation": "Bharat Borade", "type": "Father", "age": 28, "house": "2", "ward": "1" },
+  { "epic": "SOR5585839", "name": "Shivani Bharat Borade", "relation": "Bharat Borade", "type": "Father", "age": 25, "house": "2", "ward": "1" },
+  { "epic": "SOR7185101", "name": "SIDDHESH BHARAT BORADE", "relation": "BHARAT TUKARAM BORADE", "type": "Father", "age": 20, "house": "2", "ward": "1" },
+  { "epic": "SOR0592956", "name": "Hirabai Vitthal Kakade", "relation": "Vitthal Kakade", "type": "Husband", "age": 57, "house": "2", "ward": "1" },
+  { "epic": "SOR1245513", "name": "Amol Vitthal Kakade", "relation": "Vitthal Kakade", "type": "Father", "age": 36, "house": "2", "ward": "1" },
+  { "epic": "SOR6072342", "name": "Meera Amol Kakade", "relation": "Amol Kakade", "type": "Husband", "age": 31, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189141", "name": "Babasaheb Manikrao Karande", "relation": "Manikrao Karande", "type": "Father", "age": 47, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189142", "name": "Latabai Babasaheb Karande", "relation": "Babasaheb Karande", "type": "Husband", "age": 42, "house": "2", "ward": "1" },
+  { "epic": "SOR4146874", "name": "Rahul Babasaheb Karande", "relation": "Babasaheb Karande", "type": "Father", "age": 27, "house": "2", "ward": "1" },
+  { "epic": "SOR5585953", "name": "Priyanka Babasaheb Karande", "relation": "Babasaheb Karande", "type": "Father", "age": 24, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189145", "name": "Bhanudas Shripati Khade", "relation": "Shripati Khade", "type": "Father", "age": 57, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189146", "name": "Sumati Bhanudas Khade", "relation": "Bhanudas Khade", "type": "Husband", "age": 52, "house": "2", "ward": "1" },
+  { "epic": "SOR1245497", "name": "Siddharth Bhanudas Khade", "relation": "Bhanudas Khade", "type": "Father", "age": 32, "house": "2", "ward": "1" },
+  { "epic": "SOR6072359", "name": "Seema Siddharth Khade", "relation": "Siddharth Khade", "type": "Husband", "age": 26, "house": "2", "ward": "1" },
+  { "epic": "SOR3433737", "name": "Govind Bhanudas Khade", "relation": "Bhanudas Khade", "type": "Father", "age": 29, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189149", "name": "Dnyaneshwar Manikrao Lagad", "relation": "Manikrao Lagad", "type": "Father", "age": 51, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189150", "name": "Prayagbai Dnyaneshwar Lagad", "relation": "Dnyaneshwar Lagad", "type": "Husband", "age": 47, "house": "2", "ward": "1" },
+  { "epic": "SOR4146908", "name": "Pradip Dnyaneshwar Lagad", "relation": "Dnyaneshwar Lagad", "type": "Father", "age": 28, "house": "2", "ward": "1" },
+  { "epic": "SOR5585979", "name": "Aarti Dnyaneshwar Lagad", "relation": "Dnyaneshwar Lagad", "type": "Father", "age": 25, "house": "2", "ward": "1" },
+  { "epic": "SOR7185135", "name": "SURAJ DNYANESHWAR LAGAD", "relation": "DNYANESHWAR MANIKRAO LAGAD", "type": "Father", "age": 20, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189161", "name": "Bharat Manikrao Shinde", "relation": "Manikrao Shinde", "type": "Father", "age": 51, "house": "2", "ward": "1" },
+  { "epic": "MT/39/231/0189162", "name": "Suvarna Bharat Shinde", "relation": "Bharat Shinde", "type": "Husband", "age": 47, "house": "2", "ward": "1" }
+]
+
+
+    // --- SEARCH FUNCTION ---
+    function find() {
+        let val = document.getElementById('srch').value.toLowerCase().trim();
+        let listDiv = document.getElementById('list');
+        let spinner = document.getElementById('spinner');
+
+        // Reset list if input is empty or too short
+        if (val.length < 2) {
+            listDiv.innerHTML = "";
+            return;
+        }
+
+        // Show spinner
+        spinner.style.display = 'block';
+
+        // Clear list before showing new results
+        listDiv.innerHTML = "";
+
+        // Performance Check: Use a DocumentFragment for bulk DOM manipulation
+        const fragment = document.createDocumentFragment();
+
+        // Filter and Process Results
+        const results = voters.filter(v => 
+            v.name.toLowerCase().includes(val) || 
+            v.epic.toLowerCase().includes(val)
+        ).slice(0, 20); // Show top 20 results for performance
+
+        if (results.length === 0) {
+            listDiv.innerHTML = "<div style='text-align:center; color: #64748b; margin-top: 20px;'>No results found.</div>";
+            spinner.style.display = 'none';
+            return;
+        }
+
+        results.forEach(v => {
+            let card = document.createElement('div');
+            card.className = 'voter-card';
+            card.innerHTML = `
+                <div>
+                    <div class="voter-name">${v.name}</div>
+                    <div class="voter-epic">${v.epic}</div>
+                </div> 
+                <span class="arrow-icon">➜</span>
+            `;
+            card.onclick = () => showModal(v);
+            fragment.appendChild(card);
+        });
+
+        // Hide spinner and append results
+        setTimeout(() => {
+            spinner.style.display = 'none';
+            listDiv.appendChild(fragment);
+        }, 100); // Small delay to feel realistic
+    }
+
+    // --- MODAL FUNCTIONS ---
+    function showModal(v) {
+        let modal = document.getElementById('pop');
+        document.getElementById('mName').innerText = v.name;
+        document.getElementById('mBody').innerHTML = `
+            <div class="detail-row">
+                <div class="label">EPIC NO</div>
+                <div class="val">${v.epic}</div>
+            </div>
+            <div class="detail-row">
+                <div class="label">Relation (${v.type})</div>
+                <div class="val">${v.relation}</div>
+            </div>
+            <div class="detail-row">
+                <div class="label">Age</div>
+                <div class="val">${v.age} years</div>
+            </div>
+            <div class="detail-row">
+                <div class="label">House No / Ward</div>
+                <div class="val">${v.house} / ${v.ward}</div>
+            </div>
+        `;
+        
+        modal.style.display = 'flex';
+        // Force reflow to enable transition
+        modal.offsetHeight; 
+        modal.classList.add('show');
+    }
+
+    function closeModal(event) {
+        let modal = document.getElementById('pop');
+        // Close only if clicking on the background (overlay)
+        if (event.target === modal || event === 'force') {
+            modal.classList.remove('show');
+            // Wait for transition to finish before hiding
+            setTimeout(() => {
+                modal.style.display = 'none';
+            }, 400); 
+        }
+    }
+</script>
+
+</body>
+</html>
